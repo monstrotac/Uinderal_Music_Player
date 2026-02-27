@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(magick icon.svg -define icon:auto-resize=256,128,64,48,32,16 -background none favicon.ico)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}, Content-Type: %{content_type}, Size: %{size_download}\" http://localhost:4298/favicon.ico)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}, Content-Type: %{content_type}, Size: %{size_download}\\\\n\" \"http://127.0.0.1:4298/favicon.ico\")",
+      "Bash(node -e \"var path = require\\(''path''\\); var p = path.normalize\\(''/favicon.ico''\\); console.log\\(''normalized:'', JSON.stringify\\(p\\)\\); var joined = path.join\\(''j:/test'', p\\); console.log\\(''joined:'', JSON.stringify\\(joined\\)\\);\")",
+      "Bash(node -e \"var fs = require\\(''fs''\\); var stat = fs.statSync\\(''j:/Core file locations/Desktop/Uinderal_Music_Player/favicon.ico''\\); console.log\\(''Size:'', stat.size, ''bytes''\\);\")"
+    ]
+  }
+}

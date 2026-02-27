@@ -60,7 +60,7 @@ window.ConfigManager = (function () {
 
     function setFileName(slot, name, path) {
         fileNames[slot] = name || '';
-        if (path) filePaths[slot] = path;
+        filePaths[slot] = path || '';
     }
 
     function getFileName(slot) {
@@ -152,9 +152,14 @@ window.ConfigManager = (function () {
         var reader = new FileReader();
         reader.onload = function (e) {
             try {
-                // Fix unescaped backslashes in Windows paths (e.g. J:\Core → J:\\Core)
-                var text = e.target.result.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
-                var config = JSON.parse(text);
+                // Try parsing as-is first, fall back to fixing unescaped backslashes
+                var config;
+                try {
+                    config = JSON.parse(e.target.result);
+                } catch (parseErr) {
+                    var fixed = e.target.result.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+                    config = JSON.parse(fixed);
+                }
                 applyConfig(config);
                 showConfigName('Loaded: ' + file.name);
             } catch (err) {

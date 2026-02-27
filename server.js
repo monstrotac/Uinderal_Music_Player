@@ -38,6 +38,8 @@ const MIME = {
     '.jpeg': 'image/jpeg',
     '.jpg': 'image/jpeg',
     '.png': 'image/png',
+    '.ico': 'image/x-icon',
+    '.svg': 'image/svg+xml',
 };
 
 function getMime(filePath) {
@@ -45,10 +47,17 @@ function getMime(filePath) {
 }
 
 /**
- * Fix unescaped backslashes in a JSON string so JSON.parse doesn't choke on Windows paths.
+ * Parse JSON that may contain unescaped Windows backslashes.
+ * Tries parsing as-is first (for properly escaped files saved by the app).
+ * Falls back to fixing unescaped backslashes (for manually created files).
  */
-function fixBackslashes(text) {
-    return text.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+function parseJsonSafe(text) {
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        var fixed = text.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+        return JSON.parse(fixed);
+    }
 }
 
 /**
@@ -196,7 +205,7 @@ const server = http.createServer(function (req, res) {
         files.filter(function (f) { return isConfigFile(f); }).forEach(function (f) {
             try {
                 var raw = fs.readFileSync(path.join(configDir, f), 'utf8');
-                var config = JSON.parse(fixBackslashes(raw));
+                var config = parseJsonSafe(raw);
                 // Validate it's actually a DTP config (must have version and files)
                 if (!config.version || !config.files) return;
                 var nameA = stripExt(basename(config.files.A));
@@ -237,7 +246,7 @@ const server = http.createServer(function (req, res) {
                 return jsonResponse(res, 404, { error: 'Config not found' });
             }
             try {
-                var config = JSON.parse(fixBackslashes(raw));
+                var config = parseJsonSafe(raw);
                 return jsonResponse(res, 200, config);
             } catch (e) {
                 return jsonResponse(res, 500, { error: 'Malformed config file' });
