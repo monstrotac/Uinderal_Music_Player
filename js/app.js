@@ -82,6 +82,9 @@
         Timeline.init(duration);
         TrimController.init(duration);
         Waveform.init(duration);
+
+        // Apply any config that was loaded before tracks were ready
+        ConfigManager.applyPendingConfig();
     }
 
     function show(id) {

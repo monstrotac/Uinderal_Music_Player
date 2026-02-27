@@ -10,14 +10,26 @@ window.ConfigManager = (function () {
     var loadInput = null;
     var configNameDisplay = null;
 
+    // Startup load button (visible before tracks are loaded)
+    var startupLoadBtn = null;
+    var startupInput = null;
+    var pendingConfigDisplay = null;
+
     // Track the loaded file names for identification
     var fileNames = { A: '', B: '' };
+
+    // Pending config: stored when loaded before tracks are ready
+    var pendingConfig = null;
 
     function init() {
         saveBtn = document.getElementById('btn-save-config');
         loadBtn = document.getElementById('btn-load-config');
         loadInput = document.getElementById('config-file-input');
         configNameDisplay = document.getElementById('config-name-display');
+
+        // Startup config loader
+        startupLoadBtn = document.getElementById('btn-load-config-startup');
+        pendingConfigDisplay = document.getElementById('pending-config-display');
 
         if (saveBtn) {
             saveBtn.addEventListener('click', saveConfig);
@@ -34,6 +46,13 @@ window.ConfigManager = (function () {
                     // Reset so re-loading same file triggers change
                     loadInput.value = '';
                 }
+            });
+        }
+
+        // Startup load button reuses the same config file input
+        if (startupLoadBtn && loadInput) {
+            startupLoadBtn.addEventListener('click', function () {
+                loadInput.click();
             });
         }
     }
@@ -118,7 +137,16 @@ window.ConfigManager = (function () {
     }
 
     /**
+     * Extract just the filename from a path (handles both / and \ separators).
+     */
+    function basename(path) {
+        if (!path) return '';
+        return path.replace(/^.*[\\\/]/, '');
+    }
+
+    /**
      * Apply a config object to the current player state.
+     * If tracks aren't loaded yet, stores as pending config for later.
      */
     function applyConfig(config) {
         if (!config || config.version !== 1) {
@@ -126,13 +154,25 @@ window.ConfigManager = (function () {
             return;
         }
 
-        // Warn if filenames don't match
+        // If tracks aren't loaded yet, store as pending
+        if (!AudioEngine.isReady()) {
+            pendingConfig = config;
+            showPendingConfigName('Config queued — load both tracks to apply');
+            return;
+        }
+
+        // Warn if filenames don't match (compare basenames only)
         var mismatch = false;
         if (config.files) {
-            if (config.files.A && fileNames.A && config.files.A !== fileNames.A) {
+            var configA = basename(config.files.A);
+            var configB = basename(config.files.B);
+            var currentA = basename(fileNames.A);
+            var currentB = basename(fileNames.B);
+
+            if (configA && currentA && configA !== currentA) {
                 mismatch = true;
             }
-            if (config.files.B && fileNames.B && config.files.B !== fileNames.B) {
+            if (configB && currentB && configB !== currentB) {
                 mismatch = true;
             }
         }
@@ -140,8 +180,8 @@ window.ConfigManager = (function () {
         if (mismatch) {
             var proceed = confirm(
                 'This config was saved for different files:\n' +
-                '  A: ' + (config.files.A || '(none)') + '\n' +
-                '  B: ' + (config.files.B || '(none)') + '\n\n' +
+                '  A: ' + basename(config.files.A || '') + '\n' +
+                '  B: ' + basename(config.files.B || '') + '\n\n' +
                 'Current files:\n' +
                 '  A: ' + (fileNames.A || '(none)') + '\n' +
                 '  B: ' + (fileNames.B || '(none)') + '\n\n' +
@@ -190,6 +230,32 @@ window.ConfigManager = (function () {
         }
     }
 
+    /**
+     * Apply any pending config that was loaded before tracks were ready.
+     * Called by app.js after both tracks are loaded.
+     */
+    function applyPendingConfig() {
+        if (pendingConfig) {
+            var config = pendingConfig;
+            pendingConfig = null;
+            hidePendingConfigName();
+            applyConfig(config);
+        }
+    }
+
+    function showPendingConfigName(text) {
+        if (pendingConfigDisplay) {
+            pendingConfigDisplay.textContent = text;
+            pendingConfigDisplay.classList.remove('hidden');
+        }
+    }
+
+    function hidePendingConfigName() {
+        if (pendingConfigDisplay) {
+            pendingConfigDisplay.classList.add('hidden');
+        }
+    }
+
     function showConfigName(text) {
         if (configNameDisplay) {
             configNameDisplay.textContent = text;
@@ -221,6 +287,7 @@ window.ConfigManager = (function () {
         setFileName: setFileName,
         getFileName: getFileName,
         saveConfig: saveConfig,
-        applyConfig: applyConfig
+        applyConfig: applyConfig,
+        applyPendingConfig: applyPendingConfig
     };
 })();
