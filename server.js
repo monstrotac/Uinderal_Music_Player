@@ -11,7 +11,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 3000;
+const PORT = 4298;
 const ROOT = __dirname;
 const DEFAULT_CONFIG_DIR = path.join(ROOT, 'configs');
 
