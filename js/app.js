@@ -53,6 +53,9 @@ window.App = (function () {
         // Initialize home page
         Home.init();
 
+        // Initialize song browser
+        SongBrowser.init();
+
         // Wire up engine callbacks
         AudioEngine.setOnTimeUpdate(function (currentTime, duration) {
             Timeline.updateDisplay(currentTime, duration);

@@ -151,6 +151,33 @@ section {
     font-weight: 500;
 }
 
+.btn-browse-songs {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 5px 14px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    color: var(--color-text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition), border-color var(--transition);
+    position: relative;
+    z-index: 1;
+}
+
+.btn-browse-songs:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
+    border-color: var(--color-primary);
+}
+
+#file-loader-section.compact .btn-browse-songs {
+    display: none;
+}
+
 .file-input {
     display: none;
 }
@@ -1049,6 +1076,36 @@ kbd {
 }
 
 .folder-entry-parent .folder-entry-icon {
+    color: var(--color-text-muted);
+}
+
+/* Song file entries in song browser */
+.song-entry-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.song-entry-size {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.song-entry .folder-entry-icon {
+    color: var(--color-primary-light);
+}
+
+.modal-slot-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-primary-light);
+}
+
+.modal-song-info {
+    font-size: 12px;
     color: var(--color-text-muted);
 }
 

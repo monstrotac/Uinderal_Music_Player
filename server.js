@@ -14,9 +14,11 @@ const path = require('path');
 const PORT = 4298;
 const ROOT = __dirname;
 const DEFAULT_CONFIG_DIR = path.join(ROOT, 'configs');
+const DEFAULT_SONGS_DIR = path.join(ROOT, 'songs');
 
-// Ensure default config directory exists
+// Ensure default directories exist
 fs.mkdirSync(DEFAULT_CONFIG_DIR, { recursive: true });
+fs.mkdirSync(DEFAULT_SONGS_DIR, { recursive: true });
 
 const MIME = {
     '.html': 'text/html',
@@ -189,6 +191,52 @@ const server = http.createServer(function (req, res) {
             parent: path.dirname(browseDir),
             dirs: dirs,
             configCount: configCount
+        });
+    }
+
+    // --- API: browse songs directory (lists files + subdirectories) ---
+    if (url.pathname === '/api/browse-songs' && req.method === 'GET') {
+        var songsDir = url.searchParams.get('path') || DEFAULT_SONGS_DIR;
+        if (!path.isAbsolute(songsDir)) songsDir = path.join(ROOT, songsDir);
+
+        var entries;
+        try { entries = fs.readdirSync(songsDir, { withFileTypes: true }); }
+        catch (e) {
+            return jsonResponse(res, 200, {
+                path: songsDir, parent: path.dirname(songsDir),
+                dirs: [], files: [], error: e.code
+            });
+        }
+
+        var MEDIA_EXTS = ['mp3','wav','ogg','flac','aac','m4a','wma','mp4','webm','mkv','avi','mov'];
+        var dirs = [];
+        var files = [];
+
+        entries.forEach(function (entry) {
+            if (entry.isDirectory() && !entry.name.startsWith('.')) {
+                dirs.push(entry.name);
+            }
+            if (entry.isFile()) {
+                var ext = entry.name.split('.').pop().toLowerCase();
+                if (MEDIA_EXTS.indexOf(ext) !== -1) {
+                    try {
+                        var stat = fs.statSync(path.join(songsDir, entry.name));
+                        files.push({ name: entry.name, size: stat.size });
+                    } catch (e) {
+                        files.push({ name: entry.name, size: 0 });
+                    }
+                }
+            }
+        });
+
+        dirs.sort(function (a, b) { return a.localeCompare(b, undefined, { sensitivity: 'base' }); });
+        files.sort(function (a, b) { return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }); });
+
+        return jsonResponse(res, 200, {
+            path: songsDir,
+            parent: path.dirname(songsDir),
+            dirs: dirs,
+            files: files
         });
     }
 
