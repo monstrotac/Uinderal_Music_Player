@@ -10,6 +10,7 @@ window.SongBrowser = (function () {
     // DOM elements
     var songModal = null;
     var songModalClose = null;
+    var songSearchInput = null;
     var songBreadcrumb = null;
     var songList = null;
     var songModalInfo = null;
@@ -18,6 +19,8 @@ window.SongBrowser = (function () {
     // State
     var currentPath = '';
     var targetSlot = 'A';
+    var lastData = null;
+    var searchTerm = '';
 
     function init() {
         songModal = document.getElementById('song-modal');
@@ -26,6 +29,14 @@ window.SongBrowser = (function () {
         songList = document.getElementById('song-list');
         songModalInfo = document.getElementById('song-modal-info');
         songModalSlot = document.getElementById('song-modal-slot');
+        songSearchInput = document.getElementById('song-search-input');
+
+        if (songSearchInput) {
+            songSearchInput.addEventListener('input', function () {
+                searchTerm = songSearchInput.value.trim().toLowerCase();
+                if (lastData) renderSongList(lastData);
+            });
+        }
 
         if (songModalClose) {
             songModalClose.addEventListener('click', close);
@@ -61,6 +72,11 @@ window.SongBrowser = (function () {
             songModalSlot.textContent = 'Loading into: ' + slotLabel;
         }
 
+        if (songSearchInput) {
+            songSearchInput.value = '';
+            searchTerm = '';
+        }
+
         songModal.classList.remove('hidden');
         browseSongs(DEFAULT_SONGS_DIR);
     }
@@ -82,6 +98,7 @@ window.SongBrowser = (function () {
             })
             .then(function (data) {
                 currentPath = data.path || dirPath;
+                lastData = data;
                 renderBreadcrumb(currentPath);
                 renderSongList(data);
             })
@@ -131,9 +148,22 @@ window.SongBrowser = (function () {
         if (!songList) return;
         songList.innerHTML = '';
 
+        // Apply search filter
+        var filteredDirs = data.dirs || [];
+        var filteredFiles = data.files || [];
+
+        if (searchTerm) {
+            filteredDirs = filteredDirs.filter(function (d) {
+                return d.toLowerCase().indexOf(searchTerm) !== -1;
+            });
+            filteredFiles = filteredFiles.filter(function (f) {
+                return f.name.toLowerCase().indexOf(searchTerm) !== -1;
+            });
+        }
+
         if (songModalInfo) {
-            var fileCount = (data.files || []).length;
-            var dirCount = (data.dirs || []).length;
+            var dirCount = filteredDirs.length;
+            var fileCount = filteredFiles.length;
             var parts = [];
             if (dirCount > 0) parts.push(dirCount + ' folder' + (dirCount !== 1 ? 's' : ''));
             if (fileCount > 0) parts.push(fileCount + ' file' + (fileCount !== 1 ? 's' : ''));
@@ -145,8 +175,8 @@ window.SongBrowser = (function () {
             return;
         }
 
-        // Parent directory
-        if (data.parent && data.parent !== data.path) {
+        // Parent directory (hidden when searching)
+        if (!searchTerm && data.parent && data.parent !== data.path) {
             var parentEntry = document.createElement('div');
             parentEntry.className = 'folder-entry folder-entry-parent';
             parentEntry.innerHTML = '<span class="folder-entry-icon">\u2191</span> <span>..</span>';
@@ -157,7 +187,7 @@ window.SongBrowser = (function () {
         }
 
         // Subdirectories
-        (data.dirs || []).forEach(function (dirName) {
+        filteredDirs.forEach(function (dirName) {
             var entry = document.createElement('div');
             entry.className = 'folder-entry';
 
@@ -183,7 +213,7 @@ window.SongBrowser = (function () {
         // Files
         var VIDEO_EXTS = ['mp4', 'webm', 'mkv', 'avi', 'mov'];
 
-        (data.files || []).forEach(function (file) {
+        filteredFiles.forEach(function (file) {
             var entry = document.createElement('div');
             entry.className = 'folder-entry song-entry';
 
@@ -212,10 +242,12 @@ window.SongBrowser = (function () {
         });
 
         // Empty state
-        if ((data.dirs || []).length === 0 && (data.files || []).length === 0) {
+        if (filteredDirs.length === 0 && filteredFiles.length === 0) {
             var emptyMsg = document.createElement('div');
             emptyMsg.className = 'modal-error';
-            emptyMsg.textContent = 'No songs found. Add audio/video files to the songs/ folder.';
+            emptyMsg.textContent = searchTerm
+                ? 'No songs match your search.'
+                : 'No songs found. Add audio/video files to the songs/ folder.';
             songList.appendChild(emptyMsg);
         }
     }
