@@ -255,6 +255,55 @@ const server = http.createServer(function (req, res) {
         return;
     }
 
+    // --- API: resolve filenames to full paths ---
+    // Searches directories known from existing configs for matching filenames.
+    if (url.pathname === '/api/resolve-paths' && req.method === 'GET') {
+        var names = (url.searchParams.get('names') || '').split(',').filter(Boolean);
+        if (names.length === 0) {
+            return jsonResponse(res, 200, { paths: {} });
+        }
+
+        var configDir = resolveConfigDir(url);
+
+        // Collect known directories from existing configs
+        var knownDirs = new Set();
+        try {
+            var configFiles = fs.readdirSync(configDir);
+            configFiles.filter(function (f) { return isConfigFile(f); }).forEach(function (f) {
+                try {
+                    var raw = fs.readFileSync(path.join(configDir, f), 'utf8');
+                    var cfg = parseJsonSafe(raw);
+                    if (cfg.files) {
+                        ['A', 'B'].forEach(function (slot) {
+                            if (cfg.files[slot]) {
+                                var dir = path.dirname(cfg.files[slot]);
+                                if (dir && dir !== '.' && path.isAbsolute(dir)) {
+                                    knownDirs.add(dir);
+                                }
+                            }
+                        });
+                    }
+                } catch (e) { /* skip */ }
+            });
+        } catch (e) { /* no config dir */ }
+
+        // Search known directories for each filename
+        var resolved = {};
+        names.forEach(function (name) {
+            knownDirs.forEach(function (dir) {
+                if (resolved[name]) return; // already found
+                var candidate = path.join(dir, name);
+                try {
+                    if (fs.existsSync(candidate)) {
+                        resolved[name] = candidate;
+                    }
+                } catch (e) { /* skip */ }
+            });
+        });
+
+        return jsonResponse(res, 200, { paths: resolved });
+    }
+
     // --- API: save a config file ---
     if (url.pathname === '/api/config' && req.method === 'POST') {
         readBody(req, function (body) {

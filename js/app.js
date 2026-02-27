@@ -94,6 +94,9 @@ window.App = (function () {
         // Fully reset audio engine (clears slot references so isReady() returns false)
         AudioEngine.reset();
 
+        // Clear any pending config and stored file info
+        ConfigManager.reset();
+
         // Reset loaded state
         tracksLoaded = { A: false, B: false };
         filesForWaveform = { A: null, B: null };

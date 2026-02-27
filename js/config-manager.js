@@ -91,6 +91,41 @@ window.ConfigManager = (function () {
     }
 
     /**
+     * Resolve missing file paths by asking the server to search known directories.
+     * Returns a promise that resolves when paths are updated (or immediately if none missing).
+     */
+    function resolvePathsIfNeeded() {
+        var missing = [];
+        if (!filePaths.A && fileNames.A) missing.push(fileNames.A);
+        if (!filePaths.B && fileNames.B) missing.push(fileNames.B);
+
+        if (missing.length === 0) {
+            return Promise.resolve();
+        }
+
+        var configDir = (window.Home && Home.getConfigDir) ? Home.getConfigDir() : './configs/';
+
+        return fetch('/api/resolve-paths?dir=' + encodeURIComponent(configDir) + '&names=' + encodeURIComponent(missing.join(',')))
+            .then(function (res) {
+                if (!res.ok) throw new Error('Server returned ' + res.status);
+                return res.json();
+            })
+            .then(function (data) {
+                if (data.paths) {
+                    if (!filePaths.A && fileNames.A && data.paths[fileNames.A]) {
+                        filePaths.A = data.paths[fileNames.A];
+                    }
+                    if (!filePaths.B && fileNames.B && data.paths[fileNames.B]) {
+                        filePaths.B = data.paths[fileNames.B];
+                    }
+                }
+            })
+            .catch(function (err) {
+                console.warn('Could not resolve file paths:', err);
+            });
+    }
+
+    /**
      * Save current config to the server's config directory (with blob download fallback).
      */
     function saveConfig() {
@@ -99,30 +134,33 @@ window.ConfigManager = (function () {
             return;
         }
 
-        var config = gatherConfig();
+        // Resolve missing paths before saving, then proceed
+        resolvePathsIfNeeded().then(function () {
+            var config = gatherConfig();
 
-        // Generate a filename from the track names
-        var nameA = stripExt(fileNames.A) || 'trackA';
-        var nameB = stripExt(fileNames.B) || 'trackB';
-        var fileName = sanitizeFilename(nameA + '_' + nameB) + '.dtp.json';
+            // Generate a filename from the track names
+            var nameA = stripExt(fileNames.A) || 'trackA';
+            var nameB = stripExt(fileNames.B) || 'trackB';
+            var fileName = sanitizeFilename(nameA + '_' + nameB) + '.dtp.json';
 
-        var configDir = (window.Home && Home.getConfigDir) ? Home.getConfigDir() : './configs/';
+            var configDir = (window.Home && Home.getConfigDir) ? Home.getConfigDir() : './configs/';
 
-        fetch('/api/config?dir=' + encodeURIComponent(configDir), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ config: config, filename: fileName })
-        })
-        .then(function (res) {
-            if (!res.ok) throw new Error('Server returned ' + res.status);
-            return res.json();
-        })
-        .then(function (data) {
-            showConfigName('Saved: ' + data.filename);
-        })
-        .catch(function (err) {
-            console.warn('Could not save to server, falling back to download:', err);
-            downloadConfigBlob(config, fileName);
+            fetch('/api/config?dir=' + encodeURIComponent(configDir), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ config: config, filename: fileName })
+            })
+            .then(function (res) {
+                if (!res.ok) throw new Error('Server returned ' + res.status);
+                return res.json();
+            })
+            .then(function (data) {
+                showConfigName('Saved: ' + data.filename);
+            })
+            .catch(function (err) {
+                console.warn('Could not save to server, falling back to download:', err);
+                downloadConfigBlob(config, fileName);
+            });
         });
     }
 
@@ -341,12 +379,24 @@ window.ConfigManager = (function () {
         return name.replace(/[^a-zA-Z0-9_\-]/g, '_').substring(0, 80);
     }
 
+    /**
+     * Clear any pending config and reset stored file names/paths.
+     * Called when starting a fresh session.
+     */
+    function reset() {
+        pendingConfig = null;
+        hidePendingConfigName();
+        fileNames = { A: '', B: '' };
+        filePaths = { A: '', B: '' };
+    }
+
     return {
         init: init,
         setFileName: setFileName,
         getFileName: getFileName,
         saveConfig: saveConfig,
         applyConfig: applyConfig,
-        applyPendingConfig: applyPendingConfig
+        applyPendingConfig: applyPendingConfig,
+        reset: reset
     };
 })();
