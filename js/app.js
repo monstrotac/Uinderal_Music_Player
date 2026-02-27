@@ -89,6 +89,10 @@ window.App = (function () {
         TrimController.init(duration);
         Waveform.init(duration);
 
+        // Reset playback to the start
+        AudioEngine.stop();
+        UIControls.onPlaybackEnded();
+
         // Apply any config that was loaded before tracks were ready
         ConfigManager.applyPendingConfig();
     }
