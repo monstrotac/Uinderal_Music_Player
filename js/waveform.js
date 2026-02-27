@@ -228,14 +228,18 @@ window.Waveform = (function () {
         var zoomScale = numBars / visibleBars;
         var scaledOffset = alignOffsetPx * zoomScale;
 
+        // Expand data range to cover bars shifted into view by the offset
+        var offsetBars = Math.ceil(Math.abs(scaledOffset) / barWidth);
+        var drawStartIdx = startIdx - (scaledOffset > 0 ? offsetBars : 0);
+        var drawEndIdx = endIdx + (scaledOffset < 0 ? offsetBars : 0);
+
         ctx.fillStyle = color;
         ctx.beginPath();
 
-        for (var vi = 0; vi < visibleBars; vi++) {
-            var dataIdx = startIdx + vi;
+        for (var dataIdx = drawStartIdx; dataIdx < drawEndIdx; dataIdx++) {
             if (dataIdx < 0 || dataIdx >= numBars) continue;
 
-            var x = (vi * barWidth) + scaledOffset;
+            var x = ((dataIdx - startIdx) * barWidth) + scaledOffset;
             if (x + barWidth < 0 || x > displayWidth) continue;
 
             var minVal = peakData[dataIdx].min;
@@ -273,13 +277,13 @@ window.Waveform = (function () {
 
         var startTime = zoom.viewStart * duration;
         var endTime = zoom.viewEnd * duration;
-        var firstMark = Math.ceil(startTime / interval) * interval;
+        var firstMark = Math.max(0, Math.ceil(startTime / interval) * interval);
 
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.font = '9px sans-serif';
         ctx.textAlign = 'center';
 
-        for (var t = firstMark; t < endTime; t += interval) {
+        for (var t = firstMark; t < Math.min(endTime, duration); t += interval) {
             var ratio = (t - startTime) / (endTime - startTime);
             var x = ratio * width;
 
@@ -364,7 +368,9 @@ window.Waveform = (function () {
 
                 var viewWidth = zoom.viewEnd - zoom.viewStart;
                 var newStart = zoom.panStartView + deltaFrac;
-                newStart = Math.max(0, Math.min(1 - viewWidth, newStart));
+                // Allow overscroll when zoomed in so edges aren't cut off prematurely
+                var overscroll = viewWidth < 1 ? viewWidth * 0.5 : 0;
+                newStart = Math.max(-overscroll, Math.min(1 - viewWidth + overscroll, newStart));
 
                 zoom.viewStart = newStart;
                 zoom.viewEnd = newStart + viewWidth;
@@ -399,7 +405,9 @@ window.Waveform = (function () {
         newWidth = Math.max(minWidth, Math.min(1, newWidth));
 
         var newStart = anchorTime - anchorFrac * newWidth;
-        newStart = Math.max(0, Math.min(1 - newWidth, newStart));
+        // Allow overscroll when zoomed in so edges aren't cut off prematurely
+        var overscroll = newWidth < 1 ? newWidth * 0.5 : 0;
+        newStart = Math.max(-overscroll, Math.min(1 - newWidth + overscroll, newStart));
 
         zoom.viewStart = newStart;
         zoom.viewEnd = newStart + newWidth;

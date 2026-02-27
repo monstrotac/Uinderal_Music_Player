@@ -65,12 +65,12 @@ window.AudioEngine = (function () {
         s.sourceNode.connect(s.gainNode);
         s.gainNode.connect(masterGain);
 
-        // Set initial gain
+        // Set initial gain (use SILENT_GAIN instead of 0 to prevent browser stalling)
         var now = audioCtx.currentTime;
         if (slot === 'A') {
-            s.gainNode.gain.setValueAtTime(activeTrack === 'A' ? 1 : 0, now);
+            s.gainNode.gain.setValueAtTime(activeTrack === 'A' ? 1 : SILENT_GAIN, now);
         } else {
-            s.gainNode.gain.setValueAtTime(activeTrack === 'B' ? 1 : 0, now);
+            s.gainNode.gain.setValueAtTime(activeTrack === 'B' ? 1 : SILENT_GAIN, now);
         }
 
         // Stall recovery: if one element stalls, pause the other
@@ -107,7 +107,8 @@ window.AudioEngine = (function () {
         return slots.A.element !== null && slots.B.element !== null;
     }
 
-    var CROSSFADE_TIME = 0.01; // 10ms crossfade to mask toggle gaps
+    var CROSSFADE_TIME = 0.03;  // 30ms crossfade
+    var SILENT_GAIN = 0.001;    // -60dB — inaudible but keeps browser decoding the track
 
     function toggle() {
         if (!isReady()) return activeTrack;
@@ -115,20 +116,22 @@ window.AudioEngine = (function () {
 
         var elA = slots.A.element;
         var elB = slots.B.element;
+        var now = audioCtx.currentTime;
+
+        // Cancel any in-progress gain automation from a previous toggle
+        slots.A.gainNode.gain.cancelScheduledValues(now);
+        slots.B.gainNode.gain.cancelScheduledValues(now);
 
         // Force-sync the inactive track before switching so it's at the right position
         if (activeTrack === 'A') {
-            // B is about to become audible — snap it to A's position + offset
             var targetB = Math.max(0, elA.currentTime + trackOffset);
             if (Math.abs(elB.currentTime - targetB) > 0.005) {
                 elB.currentTime = targetB;
             }
-            // If B stalled, make sure it's playing
             if (isPlaying && elB.paused) {
                 elB.play();
             }
         } else {
-            // A is about to become audible — snap it to B's position - offset
             var targetA = Math.max(0, elB.currentTime - trackOffset);
             if (Math.abs(elA.currentTime - targetA) > 0.005) {
                 elA.currentTime = targetA;
@@ -138,19 +141,18 @@ window.AudioEngine = (function () {
             }
         }
 
-        // Crossfade over 10ms to mask any micro-gap while media element catches up
-        var now = audioCtx.currentTime;
+        // Crossfade — ramp from current state immediately (no gap)
         if (activeTrack === 'A') {
             slots.A.gainNode.gain.setValueAtTime(1, now);
-            slots.A.gainNode.gain.linearRampToValueAtTime(0, now + CROSSFADE_TIME);
-            slots.B.gainNode.gain.setValueAtTime(0, now);
+            slots.A.gainNode.gain.linearRampToValueAtTime(SILENT_GAIN, now + CROSSFADE_TIME);
+            slots.B.gainNode.gain.setValueAtTime(SILENT_GAIN, now);
             slots.B.gainNode.gain.linearRampToValueAtTime(1, now + CROSSFADE_TIME);
             activeTrack = 'B';
         } else {
-            slots.A.gainNode.gain.setValueAtTime(0, now);
+            slots.A.gainNode.gain.setValueAtTime(SILENT_GAIN, now);
             slots.A.gainNode.gain.linearRampToValueAtTime(1, now + CROSSFADE_TIME);
             slots.B.gainNode.gain.setValueAtTime(1, now);
-            slots.B.gainNode.gain.linearRampToValueAtTime(0, now + CROSSFADE_TIME);
+            slots.B.gainNode.gain.linearRampToValueAtTime(SILENT_GAIN, now + CROSSFADE_TIME);
             activeTrack = 'A';
         }
 

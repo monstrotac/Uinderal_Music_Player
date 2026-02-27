@@ -71,6 +71,48 @@ window.FileLoader = (function () {
         return null;
     }
 
+    function getMediaTypeFromExt(ext) {
+        ext = ext.toLowerCase();
+        if (VIDEO_EXTENSIONS.indexOf(ext) !== -1) return 'video';
+        if (AUDIO_EXTENSIONS.indexOf(ext) !== -1) return 'audio';
+        return null;
+    }
+
+    /**
+     * Load a track from a local file path.
+     * Uses the local server API (/api/local-file) to fetch the file as a blob,
+     * then passes it through the normal handleFile flow (blob URL = same-origin).
+     * Only works when served via http:// (node server.js).
+     */
+    function loadFromPath(slot, filePath, onError) {
+        var fileName = filePath.replace(/^.*[\\/]/, '');
+        var ext = fileName.split('.').pop();
+        var mediaType = getMediaTypeFromExt(ext);
+        if (!mediaType) return;
+
+        // Must be running on HTTP for the server API to work
+        if (window.location.protocol === 'file:') {
+            if (onError) onError('file-protocol');
+            return;
+        }
+
+        var fetchUrl = '/api/local-file?path=' + encodeURIComponent(filePath);
+
+        fetch(fetchUrl)
+            .then(function (res) {
+                if (!res.ok) throw new Error('Server returned ' + res.status);
+                return res.blob();
+            })
+            .then(function (blob) {
+                var file = new File([blob], fileName, { type: blob.type });
+                handleFile(slot, file);
+            })
+            .catch(function (err) {
+                console.warn('Could not auto-load from path: ' + filePath, err);
+                if (onError) onError('fetch-failed');
+            });
+    }
+
     function handleFile(slot, file) {
         var mediaType = getMediaType(file);
         if (!mediaType) {
@@ -148,6 +190,7 @@ window.FileLoader = (function () {
     }
 
     return {
-        init: init
+        init: init,
+        loadFromPath: loadFromPath
     };
 })();

@@ -21,8 +21,8 @@
                 tracksLoaded[slot] = true;
                 filesForWaveform[slot] = fileInfo.file;
 
-                // Store filename for config identification
-                ConfigManager.setFileName(slot, fileInfo.name);
+                // Store filename (and path if available) for config identification
+                ConfigManager.setFileName(slot, fileInfo.name, fileInfo.path);
 
                 // Connect to audio engine
                 AudioEngine.loadTrack(slot, mediaElement);

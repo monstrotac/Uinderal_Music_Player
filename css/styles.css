@@ -595,8 +595,7 @@ kbd {
 
 .waveform-row {
     position: relative;
-    height: 52px;
-    overflow: hidden;
+    height: 60px;
 }
 
 .waveform-row + .waveform-row {

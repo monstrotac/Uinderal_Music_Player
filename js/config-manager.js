@@ -15,8 +15,9 @@ window.ConfigManager = (function () {
     var startupInput = null;
     var pendingConfigDisplay = null;
 
-    // Track the loaded file names for identification
+    // Track the loaded file names/paths for identification and saving
     var fileNames = { A: '', B: '' };
+    var filePaths = { A: '', B: '' };
 
     // Pending config: stored when loaded before tracks are ready
     var pendingConfig = null;
@@ -57,8 +58,9 @@ window.ConfigManager = (function () {
         }
     }
 
-    function setFileName(slot, name) {
+    function setFileName(slot, name, path) {
         fileNames[slot] = name || '';
+        if (path) filePaths[slot] = path;
     }
 
     function getFileName(slot) {
@@ -73,8 +75,8 @@ window.ConfigManager = (function () {
             version: 1,
             savedAt: new Date().toISOString(),
             files: {
-                A: fileNames.A,
-                B: fileNames.B
+                A: filePaths.A || fileNames.A,
+                B: filePaths.B || fileNames.B
             },
             trackOffsetMs: AudioEngine.getTrackOffset(),
             trimStart: AudioEngine.getTrimStart(),
@@ -126,7 +128,9 @@ window.ConfigManager = (function () {
         var reader = new FileReader();
         reader.onload = function (e) {
             try {
-                var config = JSON.parse(e.target.result);
+                // Fix unescaped backslashes in Windows paths (e.g. J:\Core → J:\\Core)
+                var text = e.target.result.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+                var config = JSON.parse(text);
                 applyConfig(config);
                 showConfigName('Loaded: ' + file.name);
             } catch (err) {
@@ -154,10 +158,36 @@ window.ConfigManager = (function () {
             return;
         }
 
-        // If tracks aren't loaded yet, store as pending
+        // If tracks aren't loaded yet, store as pending and try to auto-load from paths
         if (!AudioEngine.isReady()) {
             pendingConfig = config;
-            showPendingConfigName('Config queued — load both tracks to apply');
+
+            // Try to auto-load files from paths in config (paths contain / or \)
+            var hasPathA = config.files && config.files.A && (config.files.A.indexOf('/') !== -1 || config.files.A.indexOf('\\') !== -1);
+            var hasPathB = config.files && config.files.B && (config.files.B.indexOf('/') !== -1 || config.files.B.indexOf('\\') !== -1);
+
+            if (hasPathA && hasPathB && window.FileLoader && window.FileLoader.loadFromPath) {
+                // Store the full paths so they're saved back later
+                filePaths.A = config.files.A;
+                filePaths.B = config.files.B;
+
+                var errorShown = false;
+                function onLoadError(reason) {
+                    if (errorShown) return;
+                    errorShown = true;
+                    if (reason === 'file-protocol') {
+                        showPendingConfigName('Config queued — use start.bat for auto-loading, or load tracks manually');
+                    } else {
+                        showPendingConfigName('Config queued — could not load files, load tracks manually');
+                    }
+                }
+
+                showPendingConfigName('Loading files from config...');
+                FileLoader.loadFromPath('A', config.files.A, onLoadError);
+                FileLoader.loadFromPath('B', config.files.B, onLoadError);
+            } else {
+                showPendingConfigName('Config queued — load both tracks to apply');
+            }
             return;
         }
 
