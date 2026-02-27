@@ -37,6 +37,23 @@ window.AudioEngine = (function () {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         masterGain = audioCtx.createGain();
         masterGain.connect(audioCtx.destination);
+
+        // When the tab becomes visible again, re-sync both tracks.
+        // Browsers throttle/pause background tabs, so the silent track
+        // can drift or stall while the tab is hidden.
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible' && isPlaying && isReady()) {
+                resumeContext();
+                var elA = slots.A.element;
+                var elB = slots.B.element;
+                // Un-pause any stalled elements
+                if (elA.paused && !elA.ended) elA.play();
+                if (elB.paused && !elB.ended) elB.play();
+                // Re-align B to A
+                var targetB = Math.max(0, elA.currentTime + trackOffset);
+                elB.currentTime = targetB;
+            }
+        });
     }
 
     function resumeContext() {
@@ -107,7 +124,31 @@ window.AudioEngine = (function () {
         return slots.A.element !== null && slots.B.element !== null;
     }
 
-    var CROSSFADE_TIME = 0.03;  // 30ms crossfade
+    function reset() {
+        stopSyncLoop();
+        isPlaying = false;
+
+        // Disconnect and clear both slots
+        ['A', 'B'].forEach(function (slot) {
+            var s = slots[slot];
+            if (s.sourceNode) { try { s.sourceNode.disconnect(); } catch (e) {} }
+            if (s.gainNode) { try { s.gainNode.disconnect(); } catch (e) {} }
+            if (s.blobUrl) URL.revokeObjectURL(s.blobUrl);
+            if (s.element) {
+                s.element.removeEventListener('waiting', handleStall);
+                s.element.removeEventListener('playing', handleResume);
+                s.element.removeEventListener('ended', handleEnded);
+            }
+            slots[slot] = { element: null, sourceNode: null, gainNode: null, blobUrl: null };
+        });
+
+        activeTrack = 'A';
+        isLooping = false;
+        trackOffset = 0;
+        trimStart = 0;
+        trimEnd = Infinity;
+    }
+
     var SILENT_GAIN = 0.001;    // -60dB — inaudible but keeps browser decoding the track
 
     function toggle() {
@@ -118,41 +159,28 @@ window.AudioEngine = (function () {
         var elB = slots.B.element;
         var now = audioCtx.currentTime;
 
-        // Cancel any in-progress gain automation from a previous toggle
-        slots.A.gainNode.gain.cancelScheduledValues(now);
-        slots.B.gainNode.gain.cancelScheduledValues(now);
+        // Cancel ALL scheduled gain automation
+        slots.A.gainNode.gain.cancelScheduledValues(0);
+        slots.B.gainNode.gain.cancelScheduledValues(0);
 
-        // Force-sync the inactive track before switching so it's at the right position
+        // Ensure the inactive track is playing (browsers throttle/pause silent media)
         if (activeTrack === 'A') {
-            var targetB = Math.max(0, elA.currentTime + trackOffset);
-            if (Math.abs(elB.currentTime - targetB) > 0.005) {
-                elB.currentTime = targetB;
-            }
-            if (isPlaying && elB.paused) {
-                elB.play();
-            }
+            if (isPlaying && elB.paused) elB.play();
         } else {
-            var targetA = Math.max(0, elB.currentTime - trackOffset);
-            if (Math.abs(elA.currentTime - targetA) > 0.005) {
-                elA.currentTime = targetA;
-            }
-            if (isPlaying && elA.paused) {
-                elA.play();
-            }
+            if (isPlaying && elA.paused) elA.play();
         }
 
-        // Crossfade — ramp from current state immediately (no gap)
+        // Instant gain switch — don't seek here, let the sync loop handle alignment.
+        // Seeking right before making a track audible causes decode stalls (especially
+        // with video files that need keyframe lookup). The sync loop corrects drift
+        // within 20ms at 60fps, which is imperceptible.
         if (activeTrack === 'A') {
-            slots.A.gainNode.gain.setValueAtTime(1, now);
-            slots.A.gainNode.gain.linearRampToValueAtTime(SILENT_GAIN, now + CROSSFADE_TIME);
-            slots.B.gainNode.gain.setValueAtTime(SILENT_GAIN, now);
-            slots.B.gainNode.gain.linearRampToValueAtTime(1, now + CROSSFADE_TIME);
+            slots.A.gainNode.gain.setValueAtTime(SILENT_GAIN, now);
+            slots.B.gainNode.gain.setValueAtTime(1, now);
             activeTrack = 'B';
         } else {
-            slots.A.gainNode.gain.setValueAtTime(SILENT_GAIN, now);
-            slots.A.gainNode.gain.linearRampToValueAtTime(1, now + CROSSFADE_TIME);
-            slots.B.gainNode.gain.setValueAtTime(1, now);
-            slots.B.gainNode.gain.linearRampToValueAtTime(SILENT_GAIN, now + CROSSFADE_TIME);
+            slots.A.gainNode.gain.setValueAtTime(1, now);
+            slots.B.gainNode.gain.setValueAtTime(SILENT_GAIN, now);
             activeTrack = 'A';
         }
 
@@ -372,6 +400,7 @@ window.AudioEngine = (function () {
         resumeContext: resumeContext,
         getAudioContext: getAudioContext,
         setTrackOffset: setTrackOffset,
-        getTrackOffset: getTrackOffset
+        getTrackOffset: getTrackOffset,
+        reset: reset
     };
 })();

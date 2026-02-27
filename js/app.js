@@ -1,7 +1,7 @@
 /**
  * App — Main entry point. Initializes all modules and wires them together.
  */
-(function () {
+window.App = (function () {
     var tracksLoaded = { A: false, B: false };
     var filesForWaveform = { A: null, B: null };
 
@@ -50,6 +50,9 @@
         // Initialize UI controls (button handlers, keyboard shortcuts)
         UIControls.init();
 
+        // Initialize home page
+        Home.init();
+
         // Wire up engine callbacks
         AudioEngine.setOnTimeUpdate(function (currentTime, duration) {
             Timeline.updateDisplay(currentTime, duration);
@@ -87,8 +90,51 @@
         ConfigManager.applyPendingConfig();
     }
 
+    function resetPlayer() {
+        // Fully reset audio engine (clears slot references so isReady() returns false)
+        AudioEngine.reset();
+
+        // Reset loaded state
+        tracksLoaded = { A: false, B: false };
+        filesForWaveform = { A: null, B: null };
+
+        // Clear media elements
+        var mediaContainer = document.getElementById('media-elements');
+        if (mediaContainer) mediaContainer.innerHTML = '';
+
+        // Hide all player sections
+        hide('toggle-section');
+        hide('timeline-section');
+        hide('transport-section');
+        hide('config-section');
+        hide('video-section');
+
+        // Reset file loader appearance
+        var loaderSection = document.getElementById('file-loader-section');
+        if (loaderSection) loaderSection.classList.remove('compact');
+
+        // Reset drop zone visuals
+        var dropZones = document.querySelectorAll('.drop-zone');
+        dropZones.forEach(function (zone) {
+            zone.classList.remove('loaded');
+        });
+        var fnA = document.getElementById('filename-a');
+        var fnB = document.getElementById('filename-b');
+        if (fnA) fnA.textContent = '';
+        if (fnB) fnB.textContent = '';
+    }
+
     function show(id) {
         var el = document.getElementById(id);
         if (el) el.classList.remove('hidden');
     }
+
+    function hide(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    }
+
+    return {
+        resetPlayer: resetPlayer
+    };
 })();

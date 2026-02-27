@@ -9,12 +9,39 @@
 <body>
     <!-- HEADER -->
     <header id="app-header">
+        <button id="btn-back-home" class="btn-back hidden" title="Back to Home">
+            <svg width="20" height="20" viewBox="0 0 20 20">
+                <path d="M13 4l-6 6 6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
         <img src="LogoWBackground.jpeg" alt="Logo" class="header-logo" id="header-logo">
         <h1 class="header-title">Dual Track Player</h1>
     </header>
 
+    <!-- HOME PAGE / CONFIG BROWSER -->
+    <section id="home-section">
+        <div class="home-toolbar">
+            <div class="home-dir-display">
+                <span class="home-dir-label">Directory:</span>
+                <span class="home-dir-path" id="home-dir-path">./configs/</span>
+                <button id="btn-change-dir" class="btn-secondary btn-small">Change</button>
+            </div>
+            <input type="text" id="home-search-input" class="home-search-input" placeholder="Search configs...">
+        </div>
+        <div id="home-list" class="home-list"></div>
+        <div id="home-empty" class="home-empty hidden">
+            <div class="home-empty-icon">&#9835;</div>
+            <p>No saved configurations found.</p>
+            <p class="home-empty-hint">Load tracks in the player and save a config to get started.</p>
+        </div>
+        <div id="home-loading" class="home-loading hidden">Loading configs...</div>
+        <div class="home-actions">
+            <button id="btn-new-session" class="btn-config btn-config-save">New Session</button>
+        </div>
+    </section>
+
     <!-- FILE LOADING ZONE -->
-    <section id="file-loader-section">
+    <section id="file-loader-section" class="hidden">
         <div class="drop-zone" id="drop-zone-a" data-slot="A">
             <div class="drop-zone-icon">&#9835;</div>
             <div class="drop-zone-label">Instrumental Track</div>
@@ -158,6 +185,26 @@
         </div>
     </footer>
 
+    <!-- Folder browser modal -->
+    <div id="folder-modal" class="modal-overlay hidden">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title">Choose Config Directory</h3>
+                <button id="folder-modal-close" class="btn-back" title="Close">
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                        <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-breadcrumb" id="folder-breadcrumb"></div>
+            <div class="modal-body" id="folder-list"></div>
+            <div class="modal-footer">
+                <span class="modal-config-count" id="folder-config-count"></span>
+                <button id="folder-modal-select" class="btn-config btn-config-save">Select This Folder</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Hidden media containers -->
     <div id="media-elements" style="display:none;"></div>
 
@@ -170,6 +217,7 @@
     <script src="js/waveform.js"></script>
     <script src="js/ui-controls.js"></script>
     <script src="js/config-manager.js"></script>
+    <script src="js/home.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

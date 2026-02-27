@@ -781,6 +781,305 @@ kbd {
     opacity: 0;
 }
 
+/* ---- BACK BUTTON ---- */
+.btn-back {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition), border-color var(--transition);
+    flex-shrink: 0;
+}
+
+.btn-back:hover {
+    background: var(--color-surface-hover);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* ---- HOME PAGE ---- */
+#home-section {
+    margin-top: 20px;
+}
+
+.home-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.home-dir-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.home-dir-path {
+    color: var(--color-primary-light);
+    font-family: monospace;
+    font-size: 12px;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-small {
+    padding: 3px 8px;
+    font-size: 11px;
+}
+
+.home-search-input {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    color: var(--color-text);
+    font-size: 14px;
+    padding: 8px 14px;
+    width: 100%;
+    max-width: 260px;
+    font-family: var(--font);
+    outline: none;
+    transition: border-color var(--transition);
+}
+
+.home-search-input:focus {
+    border-color: var(--color-primary);
+}
+
+.home-search-input::placeholder {
+    color: var(--color-text-muted);
+}
+
+.home-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.config-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+
+.config-card:hover {
+    background: var(--color-surface-hover);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 12px var(--color-primary-glow);
+}
+
+.config-card-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 4px;
+}
+
+.config-card-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.config-card-offset {
+    color: var(--color-primary-light);
+}
+
+.home-empty {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--color-text-muted);
+}
+
+.home-empty-icon {
+    font-size: 48px;
+    color: var(--color-primary);
+    margin-bottom: 12px;
+}
+
+.home-empty-hint {
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+.home-loading {
+    text-align: center;
+    padding: 32px;
+    color: var(--color-text-muted);
+    font-size: 14px;
+}
+
+.home-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+.home-no-match {
+    text-align: center;
+    padding: 24px;
+    color: var(--color-text-muted);
+    font-size: 14px;
+}
+
+/* ---- FOLDER BROWSER MODAL ---- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+}
+
+.modal-dialog {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 560px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.modal-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.modal-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 10px 20px;
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--color-primary-light);
+    border-bottom: 1px solid var(--color-border);
+    word-break: break-all;
+    line-height: 1.4;
+    gap: 0;
+}
+
+.breadcrumb-btn {
+    background: none;
+    border: none;
+    color: var(--color-primary-light);
+    font-family: monospace;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: background var(--transition);
+}
+
+.breadcrumb-btn:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-white);
+}
+
+.breadcrumb-sep {
+    color: var(--color-text-muted);
+    font-size: 12px;
+}
+
+.modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+    min-height: 200px;
+    max-height: 400px;
+}
+
+.folder-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--color-text);
+    transition: background var(--transition);
+}
+
+.folder-entry:hover {
+    background: var(--color-surface-hover);
+}
+
+.folder-entry-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+}
+
+.folder-entry-parent {
+    color: var(--color-text-muted);
+}
+
+.folder-entry-parent .folder-entry-icon {
+    color: var(--color-text-muted);
+}
+
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-top: 1px solid var(--color-border);
+    gap: 12px;
+}
+
+.modal-config-count {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.modal-loading {
+    text-align: center;
+    padding: 32px;
+    color: var(--color-text-muted);
+    font-size: 14px;
+}
+
+.modal-error {
+    text-align: center;
+    padding: 24px;
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
 /* ---- RESPONSIVE ---- */
 @media (max-width: 520px) {
     #file-loader-section {
@@ -799,5 +1098,14 @@ kbd {
 
     .shortcuts-hint {
         gap: 12px;
+    }
+
+    .home-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .home-search-input {
+        max-width: 100%;
     }
 }

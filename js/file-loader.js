@@ -88,7 +88,11 @@ window.FileLoader = (function () {
         var fileName = filePath.replace(/^.*[\\/]/, '');
         var ext = fileName.split('.').pop();
         var mediaType = getMediaTypeFromExt(ext);
-        if (!mediaType) return;
+        if (!mediaType) {
+            console.warn('Unsupported file type for path:', filePath);
+            if (onError) onError('unsupported-type');
+            return;
+        }
 
         // Must be running on HTTP for the server API to work
         if (window.location.protocol === 'file:') {
@@ -100,12 +104,12 @@ window.FileLoader = (function () {
 
         fetch(fetchUrl)
             .then(function (res) {
-                if (!res.ok) throw new Error('Server returned ' + res.status);
+                if (!res.ok) throw new Error('Server returned ' + res.status + ' for ' + filePath);
                 return res.blob();
             })
             .then(function (blob) {
                 var file = new File([blob], fileName, { type: blob.type });
-                handleFile(slot, file);
+                handleFile(slot, file, filePath);
             })
             .catch(function (err) {
                 console.warn('Could not auto-load from path: ' + filePath, err);
@@ -113,7 +117,7 @@ window.FileLoader = (function () {
             });
     }
 
-    function handleFile(slot, file) {
+    function handleFile(slot, file, originalPath) {
         var mediaType = getMediaType(file);
         if (!mediaType) {
             alert('Unsupported file type: ' + file.name + '\n\nSupported: mp3, wav, ogg, flac, aac, mp4, webm');
@@ -151,7 +155,8 @@ window.FileLoader = (function () {
                     name: file.name,
                     type: mediaType,
                     duration: element.duration,
-                    file: file
+                    file: file,
+                    path: originalPath || null
                 });
             }
         });

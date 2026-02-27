@@ -91,7 +91,7 @@ window.ConfigManager = (function () {
     }
 
     /**
-     * Download current config as a JSON file.
+     * Save current config to the server's config directory (with blob download fallback).
      */
     function saveConfig() {
         if (!AudioEngine.isReady()) {
@@ -106,6 +106,30 @@ window.ConfigManager = (function () {
         var nameB = stripExt(fileNames.B) || 'trackB';
         var fileName = sanitizeFilename(nameA + '_' + nameB) + '.dtp.json';
 
+        var configDir = (window.Home && Home.getConfigDir) ? Home.getConfigDir() : './configs/';
+
+        fetch('/api/config?dir=' + encodeURIComponent(configDir), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ config: config, filename: fileName })
+        })
+        .then(function (res) {
+            if (!res.ok) throw new Error('Server returned ' + res.status);
+            return res.json();
+        })
+        .then(function (data) {
+            showConfigName('Saved: ' + data.filename);
+        })
+        .catch(function (err) {
+            console.warn('Could not save to server, falling back to download:', err);
+            downloadConfigBlob(config, fileName);
+        });
+    }
+
+    /**
+     * Fallback: download config as a browser blob if server save fails.
+     */
+    function downloadConfigBlob(config, fileName) {
         var json = JSON.stringify(config, null, 2);
         var blob = new Blob([json], { type: 'application/json' });
         var url = URL.createObjectURL(blob);
@@ -118,7 +142,7 @@ window.ConfigManager = (function () {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        showConfigName('Saved: ' + fileName);
+        showConfigName('Downloaded: ' + fileName);
     }
 
     /**
