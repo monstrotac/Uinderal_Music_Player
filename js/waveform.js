@@ -19,6 +19,7 @@ window.Waveform = (function () {
 
     var duration = 0;
     var isAdvancedMode = false;
+    var initialized = false; // guard against duplicate event listener registration
 
     // Peak data storage (array of {min, max} per sample bucket)
     var peaks = { A: null, B: null };
@@ -80,10 +81,13 @@ window.Waveform = (function () {
         // Draw any already-loaded peaks
         redrawAll();
 
-        setupAdvancedMode();
-        setupAutoSync();
-        setupZoom();
-        setupResize();
+        if (!initialized) {
+            setupAdvancedMode();
+            setupAutoSync();
+            setupZoom();
+            setupResize();
+            initialized = true;
+        }
     }
 
     function setupCanvasSize(canvas) {
